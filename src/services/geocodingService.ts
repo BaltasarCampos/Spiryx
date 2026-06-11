@@ -1,6 +1,6 @@
 import { AppError } from "./errors";
 import { requestJson } from "./apiClient";
-import { normalizeLocationName, type OpenMeteoReverseGeocodingResponse } from "./normalizers";
+import { normalizeLocationName, type BigdatacloudReverseGeocodingResponse } from "./normalizers";
 import { withRetry } from "../utils/retry";
 
 const GEOCODING_BASE_URL = "/api/geocodingFunction";
@@ -17,7 +17,7 @@ export async function getLocationName(input: GetLocationNameInput): Promise<stri
   try {
     const response = await withRetry(
       () =>
-        requestJson<OpenMeteoReverseGeocodingResponse>(GEOCODING_BASE_URL, {
+        requestJson<BigdatacloudReverseGeocodingResponse>(GEOCODING_BASE_URL, {
           signal,
           query: {
             latitude,
@@ -31,7 +31,8 @@ export async function getLocationName(input: GetLocationNameInput): Promise<stri
     );
 
     return normalizeLocationName(response);
-  } catch {
+  } catch (error) {
+console.log(error);
     // Geocoding failure is non-fatal; fall back to a generic label
     return "Current location";
   }

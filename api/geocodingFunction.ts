@@ -1,17 +1,53 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+// Vercel Edge Runtime compatible
+export const runtime = 'edge';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { latitude, longitude } = req.query;
+const BASE_URL = "https://api-bdc.net/data/reverse-geocode";
 
-  if (!latitude || !longitude) {
-    return res.status(400).json({ error: "Missing coordinates" });
+export default async function handler(request: Request): Promise<Response> {
+  const { searchParams } = new URL(request.url);
+  const latStrng = searchParams.get("latitude");
+  const lonStrng = searchParams.get("longitude");
+
+  if (!latStrng || !lonStrng) {
+    return new Response(JSON.stringify({ error: "Missing coordinates" }), { status: 400 });
   }
 
-  const response = await fetch(
-    `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=en&format=json`
-  );
-  const data = await response.json();
+  const latitude = parseFloat(latStrng);
+  const longitude = parseFloat(lonStrng);
 
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.status(200).json(data);
+  if (isNaN(latitude) || latitude < -90 || latitude > 90 || isNaN(longitude) || longitude < -180 || longitude > 180) {
+    return new Response(JSON.stringify(
+      {
+        error: 'INVALID_PARAMS',
+        message: 'lat must be in [-90, 90] and lng must be in [-180, 180]',
+      }
+    ), { status: 400 });
+  }
+
+  const token = process.env['BIG_DATA_CLOUD_API_KEY'];
+  if (!token) {
+    return new Response(JSON.stringify(
+      { error: 'CONFIGURATION_ERROR', message: 'API token not configured' }
+    ), { status: 500 });
+  }
+
+  const finalUrl = new URL(BASE_URL);
+  finalUrl.searchParams.append("latitude", latitude.toString());
+  finalUrl.searchParams.append("longitude", longitude.toString());
+  finalUrl.searchParams.append("localityLanguage", "default");
+  finalUrl.searchParams.append("key", token);
+  
+  try {
+    const upstream = await fetch(finalUrl);
+    const data = await upstream.json();
+
+    return new Response(JSON.stringify(data), {
+      headers: { "Access-Control-Allow-Origin": "*" },
+      status: 200,
+    });
+  } catch (error) {
+    return new Response(JSON.stringify(
+      { error: 'FETCH_ERROR', message: 'Failed to fetch geocoding data' }
+    ), { status: 500 });
+  }
 }
