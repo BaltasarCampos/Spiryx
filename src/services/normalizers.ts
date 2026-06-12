@@ -39,7 +39,7 @@ interface Feature {
   };
 }
 
-interface NominatimReverseGeocodingResponse {
+export interface NominatimReverseGeocodingResponse {
   type: "FeatureCollection";
   features: Feature[];
 }
