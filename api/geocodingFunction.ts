@@ -1,3 +1,5 @@
+import { buildUrl } from "../src/services/apiClient";
+
 // Vercel Edge Runtime compatible
 export const runtime = 'edge';
 
@@ -7,14 +9,14 @@ export default async function handler(request: Request): Promise<Response> {
   console.log("Received request:", request.url);
   const { searchParams } = new URL(request.url, `${request.headers.get("x-forwarded-proto") || "https"}://${request.headers.get("host") || "localhost"}`);
   const latStrng = searchParams.get("latitude");
-  const lonStrng = searchParams.get("longitude");
+  const lngStrng = searchParams.get("longitude");
 
-  if (!latStrng || !lonStrng) {
+  if (!latStrng || !lngStrng) {
     return new Response(JSON.stringify({ error: "Missing coordinates" }), { status: 400 });
   }
 
   const latitude = parseFloat(latStrng);
-  const longitude = parseFloat(lonStrng);
+  const longitude = parseFloat(lngStrng);
 
   if (isNaN(latitude) || latitude < -90 || latitude > 90 || isNaN(longitude) || longitude < -180 || longitude > 180) {
     return new Response(JSON.stringify(
@@ -32,14 +34,15 @@ export default async function handler(request: Request): Promise<Response> {
     ), { status: 500 });
   }
 
-  const finalUrl = new URL(BASE_URL);
-  finalUrl.searchParams.append("latitude", latitude.toString());
-  finalUrl.searchParams.append("longitude", longitude.toString());
-  finalUrl.searchParams.append("localityLanguage", "default");
-  finalUrl.searchParams.append("key", token);
+  const url = buildUrl(BASE_URL, {
+    latitude: latitude,
+    longitude: longitude,
+    localityLanguage: "default",
+    key: token,
+  });
   
   try {
-    const upstream = await fetch(finalUrl);
+    const upstream = await fetch(url);
     const data = await upstream.json();
 
     return new Response(JSON.stringify(data), {
