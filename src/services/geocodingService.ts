@@ -3,9 +3,7 @@ import { requestJson } from "./apiClient";
 import { normalizeLocationName, type BigdatacloudReverseGeocodingResponse } from "./normalizers";
 import { withRetry } from "../utils/retry";
 
-const GEOCODING_BASE_URL = "https://api-bdc.net/data/reverse-geocode";
-const key = import.meta.env.VITE_BIG_DATA_CLOUD_API_KEY;
-console.log("Using BigDataCloud API key:", key ? "Yes" : "No");
+const GEOCODING_BASE_URL = "https://api-bdc.net/data/reverse-geocode-client";
 
 export interface GetLocationNameInput {
   latitude: number;
@@ -23,8 +21,7 @@ export async function getLocationName(input: GetLocationNameInput): Promise<stri
           signal,
           query: {
             latitude,
-            longitude,
-            key: key,           
+            longitude,       
           },
         }),
       {
