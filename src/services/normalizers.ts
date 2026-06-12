@@ -21,17 +21,27 @@ export interface OpenMeteoAirQualityResponse {
   current?: OpenMeteoCurrentPayload;
 }
 
-export interface NominatimReverseGeocodingResponse {
-  results?: Array<{
-    features: {
-      properties: {
-        geocoding: {
-          name?: string;
-          country?: string;
-        };
-      };
-    };
-  }>;
+interface GeocodingFeature {
+  name: string;
+  country: string;
+}
+
+interface GeocodingProperties {
+  geocoding: GeocodingFeature;
+}
+
+interface Feature {
+  type: "Feature";
+  properties: GeocodingProperties;
+  geometry: {
+    type: string;
+    coordinates: [number, number];
+  };
+}
+
+interface NominatimReverseGeocodingResponse {
+  type: "FeatureCollection";
+  features: Feature[];
 }
 
 interface PollutantDefinition {
@@ -148,12 +158,12 @@ export function normalizeAirQualityResponse(payload: OpenMeteoAirQualityResponse
 }
 
 export function normalizeLocationName(payload: NominatimReverseGeocodingResponse): string {
-  const firstResult = payload.results?.[0];
+  const firstResult = payload.features[0]?.properties?.geocoding;
 
   if (!firstResult) {
     return "Current location";
   }
 
-  const parts = [firstResult.features.properties.geocoding.name, firstResult.features.properties.geocoding.country].filter(Boolean);
+  const parts = [firstResult.name, firstResult.country].filter(Boolean);
   return parts.length > 0 ? parts.join(", ") : "Current location";
 }
